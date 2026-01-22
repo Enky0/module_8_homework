@@ -32,7 +32,7 @@ class User(AbstractUser):
     phone = models.CharField(max_length=20, blank=True, null=True, verbose_name="Номер телефона")
     avatar = models.ImageField(upload_to="users/avatars/", verbose_name="Аватар", blank=True, null=True,
                                help_text="Загрузите свой аватар", default=None)
-    country = models.CharField(max_length=100, blank=True, null=True, verbose_name="Страна")
+    city = models.CharField(max_length=100, blank=True, null=True, verbose_name="Город")
 
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS = []

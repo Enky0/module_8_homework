@@ -1,11 +1,13 @@
 from django.db import models
+from users.models import User
+from django.db.models import ForeignKey
 
 
 # Create your models here.
 
 class Course(models.Model):
     name = models.CharField(max_length=150, verbose_name='название курса')
-    preview = models.ImageField(upload_to='photos/', verbose_name='превью курса')
+    preview = models.ImageField(upload_to='photos/', verbose_name='превью курса', null=True, blank=True)
     description = models.TextField(verbose_name='описание курса')
 
     def __str__(self):
@@ -19,7 +21,7 @@ class Course(models.Model):
 class Lesson(models.Model):
     name = models.CharField(max_length=100, verbose_name='название урока')
     description = models.TextField(verbose_name='описание урока')
-    preview = models.ImageField(upload_to='photos/', verbose_name='превью урока')
+    preview = models.ImageField(upload_to='photos/', verbose_name='превью урока', null=True, blank=True)
     video_url = models.CharField(max_length=200, verbose_name='ссылка на видео')
     course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name='lessons')
 
@@ -29,3 +31,22 @@ class Lesson(models.Model):
     class Meta:
         verbose_name = 'курс'
         verbose_name_plural = 'курсы'
+
+
+class Payment(models.Model):
+    CARD = 'card'
+    CASH = 'cash'
+
+    PAYMENT_METHODS = [
+        (CARD, 'Карта'),
+        (CASH, 'Наличные'),
+    ]
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='payments')
+    payment_date = models.DateTimeField(verbose_name='дата оплаты')
+    paid_course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name='course_payments', null=True,
+                                    blank=True)
+    paid_lesson = models.ForeignKey(Lesson, on_delete=models.CASCADE, related_name='lesson_payments', null=True,
+                                    blank=True)
+    payment_method = models.CharField(max_length=20, choices=PAYMENT_METHODS, default=CARD,
+                                      verbose_name='способ оплаты')
