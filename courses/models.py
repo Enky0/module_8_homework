@@ -1,6 +1,6 @@
 from django.db import models
 from users.models import User
-from django.db.models import ForeignKey
+from django.db.models import ForeignKey, SET_NULL
 
 
 # Create your models here.
@@ -9,6 +9,7 @@ class Course(models.Model):
     name = models.CharField(max_length=150, verbose_name='название курса')
     preview = models.ImageField(upload_to='photos/', verbose_name='превью курса', null=True, blank=True)
     description = models.TextField(verbose_name='описание курса')
+    owner = models.ForeignKey(User, on_delete=SET_NULL, null=True, blank=True, related_name='courses')
 
     def __str__(self):
         return f"Название курса: {self.name}"
@@ -24,13 +25,14 @@ class Lesson(models.Model):
     preview = models.ImageField(upload_to='photos/', verbose_name='превью урока', null=True, blank=True)
     video_url = models.CharField(max_length=200, verbose_name='ссылка на видео')
     course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name='lessons')
+    owner = models.ForeignKey(User, on_delete=SET_NULL, null=True, blank=True, related_name='lessons')
 
     def __str__(self):
         return f"Название урока: {self.name}"
 
     class Meta:
-        verbose_name = 'курс'
-        verbose_name_plural = 'курсы'
+        verbose_name = 'урок'
+        verbose_name_plural = 'уроки'
 
 
 class Payment(models.Model):
