@@ -5,7 +5,7 @@ from courses.models import Course, Lesson, Payment
 class LessonSerializer(serializers.ModelSerializer):
     class Meta:
         model = Lesson
-        fields = ('name', 'description', 'preview', 'video_url', 'course')
+        fields = ('name', 'description', 'preview', 'video_url', 'course', 'owner')
 
     preview = serializers.ImageField(required=False, allow_null=True)
 
@@ -19,7 +19,7 @@ class CourseSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Course
-        fields = ('name', 'preview', 'description', 'lesson_count', 'lessons')
+        fields = ('name', 'preview', 'description', 'lesson_count', 'lessons', 'owner')
 
     preview = serializers.ImageField(required=False, allow_null=True)
 
