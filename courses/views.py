@@ -2,12 +2,16 @@ from django.shortcuts import render
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import viewsets, generics
 from rest_framework.filters import OrderingFilter
-from rest_framework.generics import CreateAPIView, ListAPIView, RetrieveAPIView, UpdateAPIView, DestroyAPIView
+from rest_framework.generics import CreateAPIView, ListAPIView, RetrieveAPIView, UpdateAPIView, DestroyAPIView, \
+    get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.views import APIView
+from rest_framework.response import Response
 
+from courses.paginators import StandardPagination
 from courses.serializers import CourseSerializer, LessonSerializer, PaymentSerializer
-from courses.models import Course, Lesson, Payment
+from courses.models import Course, Lesson, Payment, Subscription
 from users.permissions import IsModerator, IsOwner
 
 
@@ -16,6 +20,7 @@ from users.permissions import IsModerator, IsOwner
 class CourseViewSet(viewsets.ModelViewSet):
     serializer_class = CourseSerializer
     queryset = Course.objects.all()
+    pagination_class = StandardPagination
 
     def perform_create(self, serializer):
         course = serializer.save()
@@ -45,6 +50,7 @@ class LessonCreateAPIView(CreateAPIView):
 class LessonListAPIView(ListAPIView):
     serializer_class = LessonSerializer
     queryset = Lesson.objects.all()
+    pagination_class = StandardPagination
 
 
 class LessonRetrieveAPIView(RetrieveAPIView):
@@ -67,7 +73,31 @@ class LessonDestroyAPIView(DestroyAPIView):
 class PaymentListAPIView(ListAPIView):
     serializer_class = PaymentSerializer
     queryset = Payment.objects.all()
+    pagination_class = StandardPagination
+
     filter_backends = [DjangoFilterBackend, OrderingFilter]
     filterset_fields = ('paid_course', 'paid_lesson', 'payment_method')
 
     ordering_fields = ['payment_date', ]
+
+
+class SubscriptionAPIView(APIView):
+    def post(self, *args, **kwargs):
+        user = self.request.user
+        course_id = self.request.data.get('course_id')
+        course_item = get_object_or_404(Course, id=course_id)
+
+        subs_item = Subscription.objects.filter(user=user, course=course_item)
+
+        # Если подписка у пользователя на этот курс есть - удаляем ее
+        if subs_item.exists():
+            subs_item.delete()
+            message = 'подписка удалена'
+
+        # Если подписки у пользователя на этот курс нет - создаем ее
+        else:
+            Subscription.objects.create(user=user, course=course_item)
+            message = 'подписка добавлена'
+
+        # Возвращаем ответ в API
+        return Response({"message": message})
