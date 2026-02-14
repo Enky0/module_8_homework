@@ -17,7 +17,9 @@ dependencies = [
     "django-filter (>=25.2,<26.0)",
     "djangorestframework-simplejwt (>=5.5.1,<6.0.0)",
     "ipython (>=9.9.0,<10.0.0)",
-    "coverage (>=7.13.2,<8.0.0)"
+    "coverage (>=7.13.2,<8.0.0)",
+    "drf-yasg (>=1.21.14,<2.0.0)",
+    "stripe (>=14.3.0,<15.0.0)"
 ]
 
 

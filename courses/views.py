@@ -1,6 +1,8 @@
+from datetime import datetime
+
 from django.shortcuts import render
 from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework import viewsets, generics
+from rest_framework import viewsets, generics, status
 from rest_framework.filters import OrderingFilter
 from rest_framework.generics import CreateAPIView, ListAPIView, RetrieveAPIView, UpdateAPIView, DestroyAPIView, \
     get_object_or_404
@@ -12,6 +14,7 @@ from rest_framework.response import Response
 from courses.paginators import StandardPagination
 from courses.serializers import CourseSerializer, LessonSerializer, PaymentSerializer
 from courses.models import Course, Lesson, Payment, Subscription
+from courses.services import create_product, create_price, create_checkout_session
 from users.permissions import IsModerator, IsOwner
 
 
@@ -101,3 +104,77 @@ class SubscriptionAPIView(APIView):
 
         # Возвращаем ответ в API
         return Response({"message": message})
+
+
+class PaymentSuccessView(APIView):
+    def get(self, request):
+        payment_id = request.GET.get('payment_id')
+
+        return Response({
+            'status': 'success',
+            'message': 'Оплата прошла',
+            'payment_id': payment_id,
+        })
+
+
+class PaymentCancelView(APIView):
+    def get(self, request):
+        payment_id = request.GET.get('payment_id')
+
+        return Response({
+            'status': 'cancel',
+            'message': 'Оплата отменена',
+            'payment_id': payment_id,
+        })
+
+
+class StripeCoursePaymentAPIView(APIView):
+    def post(self, request):
+        course_id = request.data.get('course_id')
+        course = get_object_or_404(Course, id=course_id)
+
+        stripe_product = create_product(product_name=course.name, description=course.description)
+        stripe_price = create_price(stripe_product.id, course.price)
+        stripe_checkout_session = create_checkout_session(stripe_price.id)
+
+        payment = Payment.objects.create(
+            user=request.user,
+            payment_date=datetime.now(),
+            paid_course=course,
+            paid_lesson=None,
+            payment_method=Payment.CARD,
+            stripe_product_id=stripe_product.id,
+            stipe_price_id=stripe_price.id,
+            stripe_checkout_session_id=stripe_checkout_session.id,
+            stripe_payment_status=Payment.UNPAID,
+            stripe_payment_url=stripe_checkout_session.url
+        )
+
+        return Response({'payment_id': payment.id, 'checkout_url': stripe_checkout_session.url, },
+                        status=status.HTTP_201_CREATED)
+
+
+class StripeLessonPaymentAPIView(APIView):
+    def post(self, request):
+        lesson_id = request.data.get('lesson_id')
+        lesson = get_object_or_404(Lesson, id=lesson_id)
+
+        stripe_product = create_product(product_name=lesson.name, description=lesson.description)
+        stripe_price = create_price(stripe_product.id, lesson.price)
+        stripe_checkout_session = create_checkout_session(stripe_price.id)
+
+        payment = Payment.objects.create(
+            user=request.user,
+            payment_date=datetime.now(),
+            paid_course=None,
+            paid_lesson=lesson,
+            payment_method=Payment.CARD,
+            stripe_product_id=stripe_product.id,
+            stipe_price_id=stripe_price.id,
+            stripe_checkout_session_id=stripe_checkout_session.id,
+            stripe_payment_status=Payment.UNPAID,
+            stripe_payment_url=stripe_checkout_session.url
+        )
+
+        return Response({'payment_id': payment.id,'checkout_url': stripe_checkout_session.url,},
+                        status=status.HTTP_201_CREATED)
