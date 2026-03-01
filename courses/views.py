@@ -15,6 +15,7 @@ from courses.paginators import StandardPagination
 from courses.serializers import CourseSerializer, LessonSerializer, PaymentSerializer
 from courses.models import Course, Lesson, Payment, Subscription
 from courses.services import create_product, create_price, create_checkout_session
+from courses.tasks import send_course_update_info
 from users.permissions import IsModerator, IsOwner
 
 
@@ -29,6 +30,10 @@ class CourseViewSet(viewsets.ModelViewSet):
         course = serializer.save()
         course.owner = self.request.user
         course.save()
+
+    def perform_update(self, serializer):
+        course = serializer.save()
+        send_course_update_info.delay(course.id)
 
     def get_permissions(self):
         if self.action == "create":
@@ -176,5 +181,5 @@ class StripeLessonPaymentAPIView(APIView):
             stripe_payment_url=stripe_checkout_session.url
         )
 
-        return Response({'payment_id': payment.id,'checkout_url': stripe_checkout_session.url,},
+        return Response({'payment_id': payment.id, 'checkout_url': stripe_checkout_session.url, },
                         status=status.HTTP_201_CREATED)
